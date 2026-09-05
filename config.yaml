@@ -9,10 +9,15 @@ min_confluence: 22
 min_confidence: 0.32
 min_trust: 0.55
 min_skill: 0.48
-min_skill_n: 8
+min_skill_n: 30
 skill_horizon_sec: 480
+history_rows: 512
+risk_day_tz: UTC
+stop_pct: 0.02
+stop_vol_k: 2.5
 slippage_bps: 6
 fee_bps: 4
+spread_bps: 2
 
 debate_rounds: 1
 

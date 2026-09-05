@@ -11,7 +11,7 @@ from desk.catalog import CATALOG
 from desk.config_load import load_config
 from desk.embed import Embedder
 from desk.hub import DataHub
-from desk.ic import CORE, blend_weights, factor_ics, mix_ic
+from desk.ic import CORE, blend_weights, factor_ics, mix_ic, recent_factor_series
 from desk.llm import LocalLLM
 from desk.models import AgentState, Asset, DecisionMemo, DeskSnapshot, to_plain
 from desk.paper import PaperBroker
@@ -35,7 +35,9 @@ class OrbitDesk:
             slippage_bps=float(cfg.get("slippage_bps") or 6),
             max_gross_pct=float(cfg.get("max_gross_exposure_pct") or 0.55),
             fee_bps=float(cfg.get("fee_bps") or 4),
+            risk_day_tz=str(cfg.get("risk_day_tz") or "UTC"),
         )
+        self.history_rows = int(cfg.get("history_rows") or 512)
         self.agents: list[AgentState] = (
             layer1.spawn_agents(assets, self.sectors)
             + layer2.spawn_agents(assets)
@@ -80,9 +82,9 @@ class OrbitDesk:
             self.memos = saved_memos
         if saved_hist:
             for sym, rows in saved_hist.items():
-                self.history[sym] = rows[-48:]
+                self.history[sym] = rows[-self.history_rows :]
         self.paper.halted = risk.halted(self.paper, float(cfg.get("max_daily_loss_pct") or 0.02))
-        risk.ensure_stops(self.paper)
+        risk.ensure_stops(self.paper, stop_pct=float(cfg.get("stop_pct") or 0.02), history=self.history)
         self._refresh_ic()
 
     def action_tape(self) -> dict[str, Any]:
@@ -196,7 +198,7 @@ class OrbitDesk:
             stats=stats,
             heatmap=self.heatmap(),
             journal=list(self.journal[-24:]),
-            history={k: v[-48:] for k, v in self.history.items()},
+            history={k: v[-self.history_rows :] for k, v in self.history.items()},
             funnel=self._funnel(),
             exposure_pct=(self.paper.gross / eq) if eq else 0.0,
         )
@@ -316,7 +318,7 @@ class OrbitDesk:
             "book": to_plain(book) if book else None,
             "analysis": to_plain(analysis) if analysis else None,
             "challenge": to_plain(challenge) if challenge else None,
-            "history": self.history.get(sym, [])[-48:],
+            "history": self.history.get(sym, [])[-self.history_rows :],
             "memos": to_plain([m for m in self.memos if m.symbol == sym][-8:]),
             "position": next((p for p in self.paper.snapshot_positions() if p["symbol"] == sym), None),
             "debate": [d for d in self.debate if d.get("symbol") == sym][-12:],
@@ -512,11 +514,12 @@ class OrbitDesk:
                     "ts": utc_now(),
                 }
             )
-            self.history[a.symbol] = self.history[a.symbol][-48:]
+            self.history[a.symbol] = self.history[a.symbol][-self.history_rows :]
 
     def _refresh_ic(self) -> None:
         self.ics = factor_ics(self.history, horizon_sec=180)
-        self.ic_weights = blend_weights(self.ics)
+        series = recent_factor_series(self.history)
+        self.ic_weights = blend_weights(self.ics, factor_series=series)
         self.mix_ic = mix_ic(self.ics, self.ic_weights)
 
     def _in_play(self) -> list[str]:
@@ -544,7 +547,11 @@ class OrbitDesk:
         snap = await self.hub.refresh(self.tick, self.focus_symbol)
         self.sources_ok = snap.get("sources_ok") or {}
         self.paper.mark(snap.get("marks") or {})
-        risk.ensure_stops(self.paper)
+        risk.ensure_stops(
+            self.paper,
+            stop_pct=float(self.cfg.get("stop_pct") or 0.02),
+            history=self.history,
+        )
         stop_notes = risk.apply_stops(self.paper)
         for note in stop_notes:
             self._note("stop", note)
@@ -755,7 +762,13 @@ class OrbitDesk:
 
     def persist(self) -> None:
         try:
-            save_desk(self.paper, self.memos, self.tick, {k: v[-48:] for k, v in self.history.items()})
+            save_desk(
+                self.paper,
+                self.memos,
+                self.tick,
+                {k: v[-self.history_rows :] for k, v in self.history.items()},
+                history_rows=self.history_rows,
+            )
         except Exception:
             pass
 

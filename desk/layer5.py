@@ -11,6 +11,7 @@ from desk.models import (
     DecisionMemo,
     VerifiedFactorBook,
 )
+from desk.quality import skill_ok
 from desk.scoring import utc_now
 from desk.signal import alpha_score, residual_floor
 
@@ -81,11 +82,18 @@ def promotion_checks(
         side_ok = (sig >= 0 and long_ok) or (sig < 0 and short_ok)
     # Standalone metals: slightly softer trust floor (fewer CORE factors available).
     trust_floor = min_trust * (0.85 if standalone and rep.symbol != "BTC" else 1.0)
-    # Skill: cold-start waiver, then softer hit-rate for sticky metals marks.
+    from desk.quality import skill_ok as _skill_ok
+
     skill_floor = 0.40 if standalone and rep.symbol != "BTC" else min_skill
-    skill_ok = skill_n >= min_skill_n and skill_hit is not None and float(skill_hit) >= skill_floor
+    skill_ok_flag = skill_ok(
+        skill_row,
+        min_skill=skill_floor,
+        min_skill_n=min_skill_n,
+        min_expectancy=0.0,
+    )
+    # Cold-start: allow metals until enough marked history exists.
     if standalone and rep.symbol != "BTC" and skill_n < min_skill_n:
-        skill_ok = True  # building track record after mark feed restored
+        skill_ok_flag = True
     checks = {
         "trust": book.trust >= trust_floor,
         "confluence": abs(sig) >= conf_floor,
@@ -96,7 +104,7 @@ def promotion_checks(
         "ic": mix_ic is None or mix_ic > 0.02,
         "idio": rep.symbol == "BTC" or getattr(rep, "standalone", False) or (beta_ok and abs(resid) >= conf_floor),
         "precision": sigma < 32 or abs(sig) >= 1.4 * sigma,
-        "skill": skill_ok,
+        "skill": skill_ok_flag,
         "persist": persist or (standalone and rep.symbol != "BTC" and skill_n < 2),
         "regime": side_ok,
     }

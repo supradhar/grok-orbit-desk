@@ -16,14 +16,21 @@ def save_desk(
     memos: list[DecisionMemo],
     tick: int,
     history: dict[str, list[dict[str, Any]]] | None = None,
+    history_rows: int = 512,
 ) -> None:
     DATA.parent.mkdir(parents=True, exist_ok=True)
+    n = max(32, int(history_rows))
     payload = {
         "tick": tick,
         "starting": paper.starting,
         "cash": paper.cash,
         "marks": paper.marks,
-        "history": {k: v[-48:] for k, v in (history or {}).items()},
+        "day_start_equity": paper.day_start_equity,
+        "day_start_key": paper.day_start_key,
+        "halted": paper.halted,
+        "halt_reason": paper.halt_reason,
+        "halt_timestamp": paper.halt_timestamp,
+        "history": {k: v[-n:] for k, v in (history or {}).items()},
         "positions": [p.as_dict() for p in paper.positions.values()],
         "fills": [
             {"idea_id": f.idea_id, "symbol": f.symbol, "side": f.side, "qty": f.qty, "price": f.price, "ts": f.ts}
@@ -69,6 +76,13 @@ def restore_desk(
     if paper.cash <= 0 and not (raw.get("positions") or []):
         paper.cash = paper.starting
     paper.marks = dict(raw.get("marks") or {})
+    if raw.get("day_start_equity") is not None:
+        paper.day_start_equity = float(raw["day_start_equity"])
+    if raw.get("day_start_key"):
+        paper.day_start_key = str(raw["day_start_key"])
+    paper.halted = bool(raw.get("halted") or False)
+    paper.halt_reason = raw.get("halt_reason")
+    paper.halt_timestamp = raw.get("halt_timestamp")
     paper.positions = {}
     for row in raw.get("positions") or []:
         paper.positions[row["symbol"]] = Position(

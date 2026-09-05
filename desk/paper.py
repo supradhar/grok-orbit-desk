@@ -1,20 +1,53 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from desk.models import DecisionMemo, Fill, Position
 from desk.scoring import utc_now
 
 
+def _utc_day_key(ts: float | None = None, tz_name: str = "UTC") -> str:
+    """Risk-day key. tz_name reserved for future zones; v1 uses UTC calendar day."""
+    _ = tz_name
+    dt = datetime.fromtimestamp(ts if ts is not None else utc_now(), tz=timezone.utc)
+    return dt.strftime("%Y-%m-%d")
+
+
 class PaperBroker:
-    def __init__(self, equity: float, slippage_bps: float, max_gross_pct: float, fee_bps: float = 4.0) -> None:
+    def __init__(
+        self,
+        equity: float,
+        slippage_bps: float,
+        max_gross_pct: float,
+        fee_bps: float = 4.0,
+        risk_day_tz: str = "UTC",
+    ) -> None:
         self.starting = equity
         self.cash = equity
         self.slippage_bps = slippage_bps
         self.fee_bps = fee_bps
         self.max_gross_pct = max_gross_pct
+        self.risk_day_tz = risk_day_tz
         self.positions: dict[str, Position] = {}
         self.fills: list[Fill] = []
         self.marks: dict[str, float] = {}
         self.halted = False
+        self.halt_reason: str | None = None
+        self.halt_timestamp: float | None = None
+        self.day_start_equity = equity
+        self.day_start_key = _utc_day_key(tz_name=risk_day_tz)
+
+    def sync_risk_day(self, ts: float | None = None) -> None:
+        """Roll day_start_equity when the risk calendar day changes."""
+        key = _utc_day_key(ts, self.risk_day_tz)
+        if key != self.day_start_key:
+            self.day_start_key = key
+            self.day_start_equity = self.equity
+            # New day clears halt unless operator re-triggers.
+            if self.halted and self.halt_reason == "daily_loss":
+                self.halted = False
+                self.halt_reason = None
+                self.halt_timestamp = None
 
     def mark(self, marks: dict[str, float]) -> None:
         self.marks.update(marks)
@@ -41,7 +74,15 @@ class PaperBroker:
     def gross(self) -> float:
         return sum(p.notional for p in self.positions.values())
 
+    @property
+    def daily_drawdown_pct(self) -> float:
+        base = self.day_start_equity
+        if base <= 0:
+            return 0.0
+        return (base - self.equity) / base
+
     def approve(self, memo: DecisionMemo) -> str:
+        self.sync_risk_day()
         if self.halted:
             memo.status = "rejected"
             return "desk halted — daily loss cap"

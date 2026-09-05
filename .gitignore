@@ -23,3 +23,4 @@ Thumbs.db
 .ruff_cache/
 web/node_modules/
 data/
+.cursor/

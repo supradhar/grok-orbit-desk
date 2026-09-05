@@ -91,7 +91,10 @@ def blend_weights(
     shrink: float = 20.0,
     prior_mix: float = 0.6,
     cap: float = 0.22,
+    factor_series: dict[str, list[float]] | None = None,
+    corr_dampen: float = 0.55,
 ) -> dict[str, float]:
+    """IC-weighted blend with sample shrinkage and optional correlation dampening."""
     prior = 1.0 / len(CORE)
     ic_w: dict[str, float] = {}
     for f in CORE:
@@ -101,7 +104,26 @@ def blend_weights(
         if ic is None or n < 8:
             ic_w[f] = 0.0
         else:
+            # IC_shrunk = IC * n / (n + k)
             ic_w[f] = max(0.0, float(ic) * n / (n + shrink))
+    # Correlation dampening: reduce weight when highly correlated with a stronger factor.
+    if factor_series:
+        ordered = sorted(CORE, key=lambda f: ic_w.get(f, 0.0), reverse=True)
+        kept: list[str] = []
+        for f in ordered:
+            if ic_w.get(f, 0.0) <= 0:
+                continue
+            series_f = factor_series.get(f) or []
+            max_corr = 0.0
+            for g in kept:
+                series_g = factor_series.get(g) or []
+                c = _pearson(series_f, series_g)
+                if c is None:
+                    continue
+                max_corr = max(max_corr, abs(c))
+            if max_corr >= corr_dampen:
+                ic_w[f] = ic_w[f] * max(0.15, 1.0 - max_corr)
+            kept.append(f)
     tot = sum(ic_w.values())
     mixed: dict[str, float] = {}
     for f in CORE:
@@ -109,6 +131,39 @@ def blend_weights(
         mixed[f] = min(cap, (1.0 - prior_mix) * sample + prior_mix * prior)
     s = sum(mixed.values()) or 1.0
     return {f: mixed[f] / s for f in CORE}
+
+
+def factor_corr_matrix(history: dict[str, list[dict[str, Any]]]) -> dict[str, dict[str, float | None]]:
+    series: dict[str, list[float]] = {f: [] for f in CORE}
+    for rows in history.values():
+        for a in rows:
+            facs = a.get("factors") or {}
+            for f in CORE:
+                val = facs.get(f)
+                if val is not None:
+                    series[f].append(float(val))
+    mat: dict[str, dict[str, float | None]] = {}
+    for a in CORE:
+        mat[a] = {}
+        for b in CORE:
+            if a == b:
+                mat[a][b] = 1.0
+            else:
+                c = _pearson(series[a], series[b])
+                mat[a][b] = None if c is None else round(c, 3)
+    return mat
+
+
+def recent_factor_series(history: dict[str, list[dict[str, Any]]], last_n: int = 64) -> dict[str, list[float]]:
+    series: dict[str, list[float]] = {f: [] for f in CORE}
+    for rows in history.values():
+        for a in rows[-last_n:]:
+            facs = a.get("factors") or {}
+            for f in CORE:
+                val = facs.get(f)
+                if val is not None:
+                    series[f].append(float(val))
+    return series
 
 
 def mix_ic(ics: dict[str, dict[str, Any]], weights: dict[str, float]) -> float | None:
