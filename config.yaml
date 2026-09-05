@@ -20,6 +20,8 @@ fee_bps: 4
 cost_buffer: 1.25
 spread_bps: 2
 environment: paper  # research | paper | simulation | live
+# Live/demo target: XAUUSD via prop-firm (MT5/cTrader), NOT Binance spot as primary.
+# Binance demo keys (BINANCE_*) are crypto-only experiments.
 
 debate_rounds: 1
 

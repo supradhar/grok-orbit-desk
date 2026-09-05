@@ -840,6 +840,40 @@ class OrbitDesk:
         async with self._lock:
             return self.add_asset(gecko_id, symbol, name, yahoo)
 
+    def sync_ctrader_universe(self, *, live_fetch: bool = False, limit: int | None = None) -> dict[str, Any]:
+        """Import all (or capped) cTrader platform symbols into the desk watchlist."""
+        from desk.ctrader_client import fetch_symbols, load_symbol_cache, symbols_to_assets
+
+        rows = fetch_symbols() if live_fetch else load_symbol_cache()
+        if live_fetch is False and not rows:
+            rows = fetch_symbols()
+        assets = symbols_to_assets(rows)
+        if limit is not None:
+            # Always keep metals/majors first if present
+            priority = {"XAUUSD", "GOLD", "XAGUSD", "EURUSD", "GBPUSD", "USDJPY", "BTCUSD"}
+            head = [a for a in assets if a.symbol in priority]
+            tail = [a for a in assets if a.symbol not in priority]
+            assets = (head + tail)[: max(limit, len(head))]
+        added = 0
+        have = {a.symbol for a in self.assets}
+        for a in assets:
+            if a.symbol in have:
+                continue
+            self.assets.append(a)
+            have.add(a.symbol)
+            added += 1
+        # Refresh hub asset index
+        self.hub.assets = self.assets
+        self.hub.by_symbol = {a.symbol: a for a in self.assets}
+        self.hub.by_binance = {a.binance: a for a in self.assets if a.binance}
+        metals = [a.symbol for a in self.assets if a.yahoo or "XAU" in a.symbol or a.symbol == "GOLD"]
+        if metals:
+            self.sectors.setdefault("metals", [])
+            for m in metals:
+                if m not in self.sectors["metals"]:
+                    self.sectors["metals"].append(m)
+        return {"ok": True, "platform_symbols": len(rows), "desk_assets": len(self.assets), "added": added}
+
     async def loop(self) -> None:
         await self.llm.probe()
         await self.embed.probe()

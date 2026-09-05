@@ -62,7 +62,28 @@ Daily loss halt uses **day_start_equity** (UTC risk day), persisted across resta
 pytest -q
 ```
 
-## Binance Demo Trading (simulated funds)
+## Live / demo trading intent
+
+**Primary:** **cTrader** prop-firm accounts — sync and trade **all symbols** available on the linked account (FX, metals, indices, …). Research still prioritizes XAUUSD/gold when present.
+
+**Secondary:** Binance Demo is crypto-only simulation.
+
+### cTrader setup
+
+1. Create an Open API app: https://openapi.ctrader.com/
+2. Set env vars (see `.env.example`): `CTRADER_CLIENT_ID`, `CTRADER_CLIENT_SECRET`, `CTRADER_ACCESS_TOKEN`, `CTRADER_ACCOUNT_ID`, `CTRADER_HOST=demo`
+3. Sync universe + trade any platform symbol:
+
+```powershell
+python -m desk.ctrader_trade symbols
+python -m desk.ctrader_trade find XAUUSD
+python -m desk.ctrader_trade buy XAUUSD 0.01
+python -m desk.ctrader_trade buy EURUSD 0.01
+```
+
+Or via API while the desk is running: `POST /api/ctrader/sync` then trade through Approve once the live bridge is enabled on memos.
+
+## Binance Demo Trading (simulated funds — crypto only)
 
 1. **Revoke** any API key you pasted in chat.
 2. In Binance, open **Demo Trading** and create **new Demo API keys** (production keys do not work on demo).

@@ -183,6 +183,23 @@ async def lab_data_quality() -> dict:
     return desk.hub.ledger.health()
 
 
+@app.get("/api/ctrader/symbols")
+async def ctrader_symbols() -> dict:
+    from desk.ctrader_client import load_symbol_cache
+
+    rows = load_symbol_cache()
+    return {"count": len(rows), "symbols": [{"id": s.symbol_id, "name": s.name, "desk": s.desk_symbol} for s in rows]}
+
+
+@app.post("/api/ctrader/sync")
+async def ctrader_sync() -> dict:
+    """Pull platform symbol list (if creds set) and merge into desk watchlist."""
+    from desk.ctrader_client import credentials_present
+
+    live = credentials_present()
+    return desk.sync_ctrader_universe(live_fetch=live)
+
+
 @app.get("/api/experiments")
 async def experiments() -> dict:
     from desk.research_db import ResearchDB
