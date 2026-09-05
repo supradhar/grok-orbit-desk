@@ -64,9 +64,8 @@ pytest -q
 
 ## What this does *not* claim yet
 
-- Live profitability or broker-ready execution
-- Event-time news/macro reconstruction in the backtester
-- Proven LLM incremental alpha
-- Full portfolio covariance optimizer / CVaR (roadmap Phase 7+)
+- Broker-ready live money (Phase 15 stub **blocks** live submits)
+- Proven LLM incremental alpha (harness exists; run A/B/C yourself)
+- That synthetic-fixture backtests generalize to production markets
 
-See the Master Build Plan for the full roadmap (Phases 0–15).
+See [docs/MASTER_BUILD_PLAN.md](docs/MASTER_BUILD_PLAN.md) for Phases 0–15 status.

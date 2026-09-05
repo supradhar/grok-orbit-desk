@@ -731,6 +731,72 @@ function renderQuality(s) {
   `;
 }
 
+let labTab = "agents";
+
+function renderLab(s) {
+  const panel = document.getElementById("lab-panel");
+  if (!panel) return;
+  const lab = s.lab || {};
+  if (labTab === "agents") {
+    const rows = lab.attribution || [];
+    panel.innerHTML = rows.length
+      ? `<table><thead><tr><th>Factor</th><th>n</th><th>Hit</th><th>Expectancy</th><th>IC</th><th>PF</th></tr></thead><tbody>${rows
+          .map(
+            (r) =>
+              `<tr><td>${r.factor}</td><td>${r.signal_count}</td><td>${r.hit_rate ?? "—"}</td><td>${r.expectancy ?? "—"}</td><td>${r.ic ?? "—"}</td><td>${r.profit_factor ?? "—"}</td></tr>`
+          )
+          .join("")}</tbody></table>`
+      : "<p class='hint'>Agent attribution fills as mark history accumulates.</p>";
+  } else if (labTab === "factors") {
+    const decay = lab.decay || {};
+    const keys = Object.keys(decay);
+    panel.innerHTML = keys.length
+      ? keys
+          .map((f) => {
+            const d = decay[f] || {};
+            const bits = Object.entries(d)
+              .map(([h, v]) => `${h}s IC ${v.ic ?? "n/a"} (n=${v.n})`)
+              .join(" · ");
+            return `<p><strong>${f}</strong> — ${bits}</p>`;
+          })
+          .join("")
+      : "<p class='hint'>Factor decay needs more tape.</p>";
+  } else if (labTab === "risk") {
+    const pr = lab.portfolio_risk || {};
+    panel.innerHTML = pr.portfolio_vol != null
+      ? `<p>Portfolio vol ${pr.portfolio_vol} · CVaR5 ${pr.cvar_5 ?? "—"} · gross ${pr.gross ?? "—"}</p>
+         <p class="meta">Weights: ${JSON.stringify(pr.weights || {})}</p>
+         <p class="meta">Vol-target: ${JSON.stringify(pr.vol_target_weights || {})}</p>`
+      : "<p class='hint'>Open positions to see covariance / CVaR risk.</p>";
+  } else {
+    panel.innerHTML = "<p class='hint'>Loading experiments…</p>";
+    fetch("/api/experiments")
+      .then((r) => r.json())
+      .then((data) => {
+        const ex = data.experiments || [];
+        panel.innerHTML = ex.length
+          ? `<table><thead><tr><th>ID</th><th>Commit</th><th>Return</th><th>Sharpe</th></tr></thead><tbody>${ex
+              .map((e) => {
+                const m = e.metrics || {};
+                return `<tr><td>${e.id}</td><td>${(e.git_commit || "").slice(0, 7)}</td><td>${m.total_return ?? "—"}</td><td>${m.sharpe ?? "—"}</td></tr>`;
+              })
+              .join("")}</tbody></table>`
+          : "<p class='hint'>Run <code>python -m desk.backtest</code> to register experiments.</p>";
+      })
+      .catch(() => {
+        panel.innerHTML = "<p class='hint'>Experiments unavailable.</p>";
+      });
+  }
+}
+
+document.getElementById("lab-tabs")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-lab]");
+  if (!btn) return;
+  labTab = btn.dataset.lab;
+  document.querySelectorAll("#lab-tabs .tab").forEach((b) => b.classList.toggle("on", b === btn));
+  if (state) renderLab(state);
+});
+
 function applyState(s) {
   state = s;
   const incoming = s.packets || [];
@@ -748,6 +814,7 @@ function applyState(s) {
   renderFunnel(s);
   renderAction(s);
   renderQuality(s);
+  renderLab(s);
   renderMemos(s);
   renderHeat(s);
   renderBook(s);

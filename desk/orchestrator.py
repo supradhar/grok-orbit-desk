@@ -87,6 +87,34 @@ class OrbitDesk:
         risk.ensure_stops(self.paper, stop_pct=float(cfg.get("stop_pct") or 0.02), history=self.history)
         self._refresh_ic()
 
+    def research_lab(self) -> dict[str, Any]:
+        """Phase 5/7/10/13 — compact research terminal payload."""
+        from desk.factors import ablation_study, agent_attribution, factor_decay
+        from desk.ic import CORE
+        from desk.portfolio_risk import risk_snapshot
+
+        hist_marks = {
+            s: [float(r["mark"]) for r in rows if r.get("mark")]
+            for s, rows in self.history.items()
+        }
+        notionals = {
+            s: float(p.notional)
+            for s, p in self.paper.positions.items()
+        }
+        attr = agent_attribution(self.history) if self.history else []
+        decay = {f: factor_decay(self.history, f) for f in list(CORE)[:4]} if self.history else {}
+        try:
+            abl = ablation_study(self.history) if sum(len(v) for v in self.history.values()) >= 20 else {}
+        except Exception:
+            abl = {}
+        return {
+            "attribution": attr[:12],
+            "decay": decay,
+            "ablation": abl,
+            "portfolio_risk": risk_snapshot(notionals, hist_marks) if notionals else {},
+            "environment": "paper",
+        }
+
     def action_tape(self) -> dict[str, Any]:
         focus = self.focus_symbol
         chal = next((c for c in self.challenges if c.symbol == focus), None) if focus else None
@@ -239,6 +267,7 @@ class OrbitDesk:
                 "hawkes": self.telemetry.get("hawkes") or {},
             },
             "quality": research_quality(self.history, signal.residual_floor(self.cfg)),
+            "lab": self.research_lab(),
             "risk": risk.snapshot(self.paper, float(self.cfg.get("max_daily_loss_pct") or 0.02)),
             "calendar": (self.hub.snapshot or {}).get("calendar") or {},
             "action": self.action_tape(),

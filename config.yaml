@@ -17,7 +17,9 @@ stop_pct: 0.02
 stop_vol_k: 2.5
 slippage_bps: 6
 fee_bps: 4
+cost_buffer: 1.25
 spread_bps: 2
+environment: paper  # research | paper | simulation | live
 
 debate_rounds: 1
 

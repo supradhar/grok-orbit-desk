@@ -302,6 +302,26 @@ button.tab.on { border-color: var(--l5); color: var(--l5); }
 .debate li { margin: 0.28rem 0; }
 .debate .meta { color: var(--l4); display: block; font-size: 0.65rem; }
 
+.labs {
+  border-top: 1px solid var(--line);
+  padding: 1.2rem 1.4rem 2rem;
+}
+.labs h2 { margin: 0 0 0.6rem; }
+.lab-panel {
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  max-height: 280px;
+  overflow: auto;
+}
+.lab-panel table { width: 100%; border-collapse: collapse; }
+.lab-panel th, .lab-panel td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.28rem 0.4rem;
+  text-align: left;
+}
+.lab-panel th { color: var(--muted); font-weight: 500; }
+
 @media (max-width: 1100px) {
   .layout, .lower { grid-template-columns: 1fr; }
   .orbit-wrap, .inspector { border-right: 0; border-bottom: 1px solid var(--line); }

@@ -147,6 +147,34 @@ def run_backtest(
         metrics=result["metrics"],
         walkforward=wf,
     )
+    # Phase 11 — register experiment in SQLite
+    try:
+        from desk.research_db import ResearchDB
+        from desk.scoring import utc_now
+
+        db = ResearchDB()
+        db.record_experiment(
+            {
+                "id": run_id,
+                "created_at": utc_now(),
+                "git_commit": meta.get("git_commit"),
+                "config_hash": meta.get("config_hash"),
+                "dataset_hash": meta.get("dataset_hash"),
+                "seed": seed,
+                "universe": symbols,
+                "metrics": result["metrics"],
+                "notes": "orbit-backtest-v1",
+            }
+        )
+        db.close()
+    except Exception:
+        pass
+    try:
+        from desk.observability import log_event, redact_secrets
+
+        log_event("backtest_complete", {"run_id": run_id, "metrics": result["metrics"], "config": redact_secrets(bt.as_dict())})
+    except Exception:
+        pass
     return {
         "run_id": run_id,
         "out_dir": str(out),

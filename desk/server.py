@@ -140,6 +140,45 @@ async def tick(item: FocusItem | None = None) -> dict:
     }
 
 
+@app.get("/api/lab")
+async def lab() -> dict:
+    return desk.research_lab()
+
+
+@app.get("/api/lab/attribution")
+async def lab_attribution() -> dict:
+    from desk.factors import agent_attribution
+
+    return {"rows": agent_attribution(desk.history)}
+
+
+@app.get("/api/lab/ablation")
+async def lab_ablation() -> dict:
+    from desk.factors import ablation_study
+
+    return ablation_study(desk.history)
+
+
+@app.get("/api/lab/ml")
+async def lab_ml() -> dict:
+    from desk.ml_alpha import train_logistic_alpha
+
+    result = train_logistic_alpha(desk.history)
+    result.pop("model", None)
+    return result
+
+
+@app.get("/api/experiments")
+async def experiments() -> dict:
+    from desk.research_db import ResearchDB
+
+    db = ResearchDB()
+    try:
+        return {"experiments": db.list_experiments()}
+    finally:
+        db.close()
+
+
 @app.websocket("/ws")
 async def ws(sock: WebSocket) -> None:
     await sock.accept()

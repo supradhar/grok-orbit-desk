@@ -15,6 +15,18 @@ from desk.quality import skill_ok
 from desk.scoring import utc_now
 from desk.signal import alpha_score, residual_floor
 
+
+def expected_alpha_clears_costs(sig: float, cfg: dict[str, Any]) -> bool:
+    """Phase 6 — reject when heuristic expected move < round-trip friction + buffer."""
+    fee = float(cfg.get("fee_bps") or 4)
+    slip = float(cfg.get("slippage_bps") or 6)
+    spread = float(cfg.get("spread_bps") or 2)
+    friction = (fee * 2 + slip + spread) / 1e4
+    expected_move = abs(float(sig)) / 10000.0
+    buffer = float(cfg.get("cost_buffer") or 1.25)
+    return expected_move >= friction * buffer
+
+
 COLOR = "#fbbf24"
 
 
@@ -82,8 +94,6 @@ def promotion_checks(
         side_ok = (sig >= 0 and long_ok) or (sig < 0 and short_ok)
     # Standalone metals: slightly softer trust floor (fewer CORE factors available).
     trust_floor = min_trust * (0.85 if standalone and rep.symbol != "BTC" else 1.0)
-    from desk.quality import skill_ok as _skill_ok
-
     skill_floor = 0.40 if standalone and rep.symbol != "BTC" else min_skill
     skill_ok_flag = skill_ok(
         skill_row,
@@ -94,6 +104,7 @@ def promotion_checks(
     # Cold-start: allow metals until enough marked history exists.
     if standalone and rep.symbol != "BTC" and skill_n < min_skill_n:
         skill_ok_flag = True
+    cost_ok = expected_alpha_clears_costs(sig, cfg)
     checks = {
         "trust": book.trust >= trust_floor,
         "confluence": abs(sig) >= conf_floor,
@@ -105,6 +116,7 @@ def promotion_checks(
         "idio": rep.symbol == "BTC" or getattr(rep, "standalone", False) or (beta_ok and abs(resid) >= conf_floor),
         "precision": sigma < 32 or abs(sig) >= 1.4 * sigma,
         "skill": skill_ok_flag,
+        "cost_aware": cost_ok,
         "persist": persist or (standalone and rep.symbol != "BTC" and skill_n < 2),
         "regime": side_ok,
     }
