@@ -1,0 +1,64 @@
+equity: 100000
+tick_seconds: 40
+feature_seconds: 5
+llm_floor: 14
+max_position_pct: 0.08
+max_gross_exposure_pct: 0.40
+max_daily_loss_pct: 0.02
+min_confluence: 22
+min_confidence: 0.32
+min_trust: 0.55
+min_skill: 0.48
+min_skill_n: 8
+skill_horizon_sec: 480
+slippage_bps: 6
+fee_bps: 4
+
+debate_rounds: 1
+
+llm:
+  host: http://127.0.0.1:11434
+  model: qwen2.5:3b
+  timeout: 90
+  layers:
+    1: qwen2.5:3b
+    2: qwen2.5:3b
+    3: qwen2.5:3b
+    4: qwen2.5:3b
+    5: qwen2.5:3b
+
+watchlist:
+  - {id: bitcoin, symbol: BTC, binance: BTCUSDT, keywords: [bitcoin, btc]}
+  - {id: ethereum, symbol: ETH, binance: ETHUSDT, keywords: [ethereum, eth]}
+  - {id: solana, symbol: SOL, binance: SOLUSDT, keywords: [solana, sol]}
+  - {id: ripple, symbol: XRP, binance: XRPUSDT, keywords: [ripple, xrp]}
+  - {id: binancecoin, symbol: BNB, binance: BNBUSDT, keywords: [bnb, binance coin]}
+  - {id: cardano, symbol: ADA, binance: ADAUSDT, keywords: [cardano, ada]}
+  - {id: dogecoin, symbol: DOGE, binance: DOGEUSDT, keywords: [dogecoin, doge]}
+  - {id: avalanche-2, symbol: AVAX, binance: AVAXUSDT, keywords: [avalanche, avax]}
+  - {id: chainlink, symbol: LINK, binance: LINKUSDT, keywords: [chainlink, link]}
+  - {id: polkadot, symbol: DOT, binance: DOTUSDT, keywords: [polkadot, dot]}
+  - {id: near, symbol: NEAR, binance: NEARUSDT, keywords: [near protocol, near]}
+  - {id: aptos, symbol: APT, binance: APTUSDT, keywords: [aptos, apt]}
+  - {id: sui, symbol: SUI, binance: SUIUSDT, keywords: [sui]}
+  - {id: uniswap, symbol: UNI, binance: UNIUSDT, keywords: [uniswap, uni]}
+  - {id: aave, symbol: AAVE, binance: AAVEUSDT, keywords: [aave]}
+  - {id: litecoin, symbol: LTC, binance: LTCUSDT, keywords: [litecoin, ltc]}
+  - {id: cosmos, symbol: ATOM, binance: ATOMUSDT, keywords: [cosmos, atom]}
+  - {id: optimism, symbol: OP, binance: OPUSDT, keywords: [optimism, op token]}
+  - {id: arbitrum, symbol: ARB, binance: ARBUSDT, keywords: [arbitrum, arb]}
+  - {id: pepe, symbol: PEPE, binance: PEPEUSDT, keywords: [pepe]}
+  - {id: xauusd, symbol: XAUUSD, yahoo: GC=F, keywords: [gold, xau, xauusd, bullion, gold price, spot gold, fomc, jobless, nfp, cpi]}
+
+sectors:
+  l1_chains: [BTC, ETH, SOL, ADA, AVAX, NEAR, APT, SUI, ATOM]
+  rollups: [OP, ARB]
+  defi: [UNI, AAVE, LINK]
+  meme: [DOGE, PEPE]
+  payments: [XRP, LTC, BNB]
+  infra: [DOT, LINK, NEAR]
+  majors: [BTC, ETH]
+  alts: [SOL, XRP, BNB, ADA, AVAX, LINK, DOT]
+  high_beta: [SOL, AVAX, PEPE, DOGE, SUI]
+  blue_chip: [BTC, ETH, BNB, LTC]
+  metals: [XAUUSD]

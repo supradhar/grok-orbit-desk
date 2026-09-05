@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orbit Desk — research first</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Syne:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css?v=24" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Five-layer research orbit · paper only · ui 23</p>
+      <h1>Orbit Desk</h1>
+    </div>
+    <dl class="kpis">
+      <div><dt>Equity</dt><dd id="kpi-equity">—</dd></div>
+      <div><dt>Cash</dt><dd id="kpi-cash">—</dd></div>
+      <div><dt>P&amp;L</dt><dd id="kpi-pnl">—</dd></div>
+      <div><dt>Exposure</dt><dd id="kpi-exp">—</dd></div>
+      <div><dt>Regime</dt><dd id="kpi-regime">—</dd></div>
+      <div><dt>Idio</dt><dd id="kpi-idio">—</dd></div>
+      <div><dt>β BTC</dt><dd id="kpi-beta">—</dd></div>
+      <div><dt>Risk</dt><dd id="kpi-risk">—</dd></div>
+      <div><dt>Tick</dt><dd id="kpi-tick">—</dd></div>
+    </dl>
+    <div class="ticker-box">
+      <label class="sr" for="ticker">Ticker</label>
+      <input id="ticker" type="text" autocomplete="off" spellcheck="false" placeholder="Type a ticker — BTC, SOL, UNI…" />
+      <ul id="suggest" class="suggest" hidden role="listbox"></ul>
+    </div>
+    <button type="button" id="btn-open">Open blotter</button>
+    <button type="button" id="btn-tick">Run research tick</button>
+  </header>
+
+  <ol class="funnel" id="funnel"></ol>
+  <p class="action" id="action-now">Open a ticker to watch the desks work.</p>
+  <ol class="tape" id="tape"></ol>
+  <div class="feeds" id="feeds"></div>
+
+  <main class="layout">
+    <section class="orbit-wrap">
+      <canvas id="orbit" width="900" height="720" aria-label="Five research layers as orbits"></canvas>
+      <div id="tip" class="tip" hidden></div>
+      <ul class="legend">
+        <li><span class="dot l1"></span> L1 Factor research</li>
+        <li><span class="dot l2"></span> L2 Source verification</li>
+        <li><span class="dot l3"></span> L3 Synthesis</li>
+        <li><span class="dot l4"></span> L4 Devil’s advocate</li>
+        <li><span class="dot l5"></span> L5 Head of desk</li>
+      </ul>
+      <p class="caption">White = this ticker. Gold pulse + NOW line = last agent that wrote. Hover a dot for the name. Specks flying inward = L1→L5 handoff.</p>
+    </section>
+
+    <section class="inspector">
+      <h2>Blotter <strong id="blotter-sym"></strong></h2>
+      <p class="hint" id="insp-hint">Type a ticker and press Open, or click the orbit.</p>
+      <div id="inspector"></div>
+    </section>
+
+    <aside class="rail">
+      <h2>Decision memos</h2>
+      <div class="tabs">
+        <button type="button" class="tab on" data-filter="pending">This ticker</button>
+        <button type="button" class="tab" data-filter="desk">Desk</button>
+        <button type="button" class="tab" data-filter="all">All</button>
+      </div>
+      <p class="hint">Nothing trades until you approve.</p>
+      <div id="memos"></div>
+    </aside>
+  </main>
+
+  <section class="lower">
+    <div>
+      <h2>Factor heatmap</h2>
+      <div id="heat" class="heat"></div>
+    </div>
+    <div>
+      <h2>Paper book</h2>
+      <div id="book"></div>
+      <h2 class="spaced">Research quality</h2>
+      <div id="quality"></div>
+      <h2 class="spaced">Research log</h2>
+      <div id="journal"></div>
+    </div>
+  </section>
+
+  <script src="/assets/app.js?v=24"></script>
+</body>
+</html>
