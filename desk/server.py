@@ -168,6 +168,21 @@ async def lab_ml() -> dict:
     return result
 
 
+@app.get("/api/lab/abc")
+async def lab_abc() -> dict:
+    from pathlib import Path
+
+    from desk.ab_study import run_abc_study
+    from desk.config_load import ROOT
+
+    return run_abc_study(ROOT / "data" / "ohlcv", warmup=60)
+
+
+@app.get("/api/lab/data-quality")
+async def lab_data_quality() -> dict:
+    return desk.hub.ledger.health()
+
+
 @app.get("/api/experiments")
 async def experiments() -> dict:
     from desk.research_db import ResearchDB

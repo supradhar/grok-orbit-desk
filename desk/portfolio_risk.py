@@ -117,6 +117,31 @@ def optimize_weights(
     return w
 
 
+def stress_shocks(
+    weights: dict[str, float],
+    *,
+    scenarios: dict[str, dict[str, float]] | None = None,
+) -> dict[str, float]:
+    """
+    Apply factor/asset return shocks and report portfolio P&L under each scenario.
+    scenarios: name -> {symbol: return}
+    """
+    scenarios = scenarios or {
+        "crypto_crash": {"BTC": -0.15, "ETH": -0.18, "SOL": -0.25},
+        "risk_on": {"BTC": 0.08, "ETH": 0.10, "SOL": 0.14},
+        "gold_spike": {"XAUUSD": 0.05, "BTC": -0.03},
+        "correlation_1": {"BTC": -0.10, "ETH": -0.10, "SOL": -0.10, "XAUUSD": -0.02},
+        "liquidity_stress": {"BTC": -0.06, "ETH": -0.07, "SOL": -0.12, "XAUUSD": -0.01},
+    }
+    out: dict[str, float] = {}
+    for name, shocks in scenarios.items():
+        pnl = 0.0
+        for sym, w in weights.items():
+            pnl += w * float(shocks.get(sym) or 0.0)
+        out[name] = round(pnl, 5)
+    return out
+
+
 def risk_snapshot(
     positions: dict[str, float],
     history_marks: dict[str, list[float]],
@@ -127,11 +152,9 @@ def risk_snapshot(
     vols = {s: realized_vol(series.get(s) or []) for s in positions}
     target_w = {s: vol_target_weight(target_vol, vols.get(s, 0.02)) for s in positions}
     syms, cov = cov_matrix(series)
-    # normalize notionals to weights
     gross = sum(abs(v) for v in positions.values()) or 1.0
     w = {s: positions.get(s, 0.0) / gross for s in positions}
     pvar = portfolio_variance(w, syms, cov)
-    # portfolio return series (equal-ish from available)
     port_rets: list[float] = []
     if series:
         n = min(len(v) for v in series.values())
@@ -149,4 +172,6 @@ def risk_snapshot(
         "cvar_5": None if cvar(port_rets) is None else round(cvar(port_rets) or 0.0, 5),
         "weights": {k: round(v, 4) for k, v in w.items()},
         "gross": round(gross, 2),
+        "stress": stress_shocks(w),
+        "concentration": round(max((abs(x) for x in w.values()), default=0.0), 4),
     }

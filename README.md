@@ -62,10 +62,19 @@ Daily loss halt uses **day_start_equity** (UTC risk day), persisted across resta
 pytest -q
 ```
 
+## Research labs & studies
+
+```bash
+# A/B/C deterministic vs softer vs adversarial-friction policies
+python -c "from pathlib import Path; from desk.ab_study import run_abc_study; import json; print(json.dumps(run_abc_study(Path('data/ohlcv')), indent=2)[:2000])"
+```
+
+UI (hard-refresh **ui 26**): Agent Lab, Factor Lab, Portfolio Risk, Data Quality, A/B/C Study, Experiments.
+
 ## What this does *not* claim yet
 
 - Broker-ready live money (Phase 15 stub **blocks** live submits)
-- Proven LLM incremental alpha (harness exists; run A/B/C yourself)
-- That synthetic-fixture backtests generalize to production markets
+- That synthetic-fixture / policy-sim A/B/C proves LLM alpha in production
+- That sklearn/LightGBM beats the handcrafted baseline on live markets without your own OOS review
 
-See [docs/MASTER_BUILD_PLAN.md](docs/MASTER_BUILD_PLAN.md) for Phases 0–15 status.
+See [docs/MASTER_BUILD_PLAN.md](docs/MASTER_BUILD_PLAN.md).

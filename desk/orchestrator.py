@@ -112,7 +112,8 @@ class OrbitDesk:
             "decay": decay,
             "ablation": abl,
             "portfolio_risk": risk_snapshot(notionals, hist_marks) if notionals else {},
-            "environment": "paper",
+            "data_quality": (self.hub.snapshot or {}).get("event_data") or self.hub.ledger.health(),
+            "environment": str(self.cfg.get("environment") or "paper"),
         }
 
     def action_tape(self) -> dict[str, Any]:

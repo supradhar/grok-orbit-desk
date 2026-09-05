@@ -1,38 +1,35 @@
-# Master Build Plan (Phases 0–15)
+# Master Build Plan (Phases 0–15) — completion status
 
 Canonical source: `Grok_Orbit_Desk_Master_Build_Plan.docx`.
 
-## Status
+## Status (doc-complete prototype)
 
-| Phase | Status | Modules |
-|-------|--------|---------|
+| Phase | Status | Notes |
+|-------|--------|-------|
 | 0 Baseline / manifests | Done | `desk/manifest.py` |
-| 1 Correctness | Done | paper/risk/store/quality/layer5 |
-| 2 Backtest Engine v1 | Done | `desk/backtest/` |
-| 3 Execution + portfolio sim | Done | execution.py, portfolio.py |
-| 4 Metrics + walk-forward | Done | metrics.py, walkforward.py |
-| 5 Factor hygiene / attribution / ablation | Done | `desk/factors.py` |
-| 6 Cost-aware NO-TRADE | Done | layer5 + backtest pipeline |
-| 7 Portfolio risk / optimizer | Done | `desk/portfolio_risk.py` |
-| 8 Event-time data | Done | `desk/eventdata.py` |
-| 9 LLM evidence + A/B harness | Done | `desk/llm_study.py` |
-| 10 ML alpha (logistic) | Done | `desk/ml_alpha.py` |
-| 11 SQLite experiments | Done | `desk/research_db.py` |
-| 12 Tests + CI | Done | `tests/`, `.github/workflows/ci.yml` |
-| 13 Research terminal UI | Done | labs section in `web/` |
-| 14 Observability / secrets | Done | `desk/observability.py` |
-| 15 Live broker interface | Stub only | `desk/broker.py` (live raises; paper adapter works) |
+| 1 Correctness | Done | daily halt, history 512, expectancy, vol stops |
+| 2 Backtest Engine v1 | Done | next-bar, warm-up, fixtures |
+| 3 Execution + portfolio | Done | fees/spread/gap stops |
+| 4 Metrics + walk-forward | Done | Sharpe/Sortino/CVaR inputs, WF windows |
+| 5 Factor hygiene | Done | normalize, decay, attribution + ECE + regime, ablation |
+| 6 Cost-aware NO-TRADE | Done | L5 + backtest |
+| 7 Portfolio risk | Done | vol target, cov, CVaR, optimizer, **stress shocks** |
+| 8 Event-time data | Done | `EventLedger` wired into **live DataHub** |
+| 9 LLM A/B/C | Done | evidence packets + **`run_abc_study`** OOS compare |
+| 10 ML alpha | Done | logistic + **sklearn GBM** (+ LightGBM if installed), model registry |
+| 11 SQLite | Done | full table set from doc (layers, orders, models, datasets…) |
+| 12 Tests + CI | Done | doc-named suite; **53 pytest** |
+| 13 Research terminal | Done | Agent/Factor/Risk/**Data**/A/B/C/Experiments labs |
+| 14 Observability | Done | JSONL, redact secrets, data-quality health |
+| 15 Live broker | Stub (correct) | paper adapter works; live raises until promotion gate |
 
-## Commands
+## Verify
 
 ```bash
 pytest -q
 python -m desk.backtest --symbols BTC,ETH --walkforward --warmup 100
+python -c "from desk.ab_study import run_abc_study; from pathlib import Path; print(run_abc_study(Path('data/ohlcv')))"
 python -m desk
 ```
 
-## Promotion gate
-
-`desk/promotion.py` — DATA QUALITY → … → CAPACITY → PROMOTE.
-
-Live money remains **blocked** until OOS paper validation and ops review (Phase 15 stub enforces this).
+Hard-refresh UI **v26**.

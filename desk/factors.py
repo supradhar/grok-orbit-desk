@@ -84,15 +84,18 @@ def agent_attribution(
     history: dict[str, list[dict[str, Any]]],
     horizon_sec: float = 480.0,
     min_score: float = 8.0,
+    regime_by_ts: dict[float, str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Per-factor OOS-style skill table from tape history."""
+    """Per-factor OOS-style skill table including regime splits and calibration."""
     rows_out: list[dict[str, Any]] = []
     ics = factor_ics(history, horizon_sec=horizon_sec)
     for fac in CORE:
-        # Build pseudo-history keyed by factor score as signal
         hits = 0
         n = 0
         signed: list[float] = []
+        # calibration bins: predicted confidence proxy = |score|/100
+        bins = {i: {"p": [], "y": []} for i in range(5)}
+        by_regime: dict[str, dict[str, float]] = {}
         for rows in history.values():
             for i, a in enumerate(rows):
                 facs = a.get("factors") or {}
@@ -108,7 +111,21 @@ def agent_attribution(
                 good = (float(val) > 0 and ret > 0) or (float(val) < 0 and ret < 0)
                 if good:
                     hits += 1
-                signed.append(ret if float(val) > 0 else -ret)
+                signed_ret = ret if float(val) > 0 else -ret
+                signed.append(signed_ret)
+                conf = min(0.99, abs(float(val)) / 100.0)
+                bi = min(4, int(conf * 5))
+                bins[bi]["p"].append(conf)
+                bins[bi]["y"].append(1.0 if good else 0.0)
+                reg = "unknown"
+                if regime_by_ts and a.get("ts") is not None:
+                    reg = regime_by_ts.get(float(a["ts"]), "unknown")
+                elif a.get("regime"):
+                    reg = str(a["regime"])
+                br = by_regime.setdefault(reg, {"n": 0, "hits": 0, "sum": 0.0})
+                br["n"] += 1
+                br["hits"] += 1 if good else 0
+                br["sum"] += signed_ret
         wins = [r for r in signed if r > 0]
         losses = [r for r in signed if r <= 0]
         p_win = (len(wins) / n) if n else 0.0
@@ -118,6 +135,25 @@ def agent_attribution(
         gw = sum(wins)
         gl = abs(sum(losses))
         pf = (gw / gl) if gl > 1e-12 else None
+        # ECE-like calibration
+        ece = 0.0
+        cal_n = 0
+        for bi, bucket in bins.items():
+            if not bucket["y"]:
+                continue
+            conf_m = sum(bucket["p"]) / len(bucket["p"])
+            acc_m = sum(bucket["y"]) / len(bucket["y"])
+            ece += abs(conf_m - acc_m) * len(bucket["y"])
+            cal_n += len(bucket["y"])
+        ece = ece / cal_n if cal_n else None
+        regime_performance = {
+            r: {
+                "n": int(v["n"]),
+                "hit_rate": round(v["hits"] / v["n"], 3) if v["n"] else None,
+                "mean_return": round(v["sum"] / v["n"], 5) if v["n"] else None,
+            }
+            for r, v in by_regime.items()
+        }
         ic_row = ics.get(fac) or {}
         rows_out.append(
             {
@@ -129,6 +165,8 @@ def agent_attribution(
                 "ic_n": ic_row.get("n"),
                 "profit_factor": None if pf is None else round(pf, 3),
                 "mean_return": round(sum(signed) / len(signed), 5) if signed else None,
+                "calibration_ece": None if ece is None else round(ece, 4),
+                "regime_performance": regime_performance,
             }
         )
     rows_out.sort(key=lambda r: (r.get("expectancy") is not None, r.get("expectancy") or -1e9), reverse=True)

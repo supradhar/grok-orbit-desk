@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from desk import calendar as econcal
+from desk.eventdata import EventLedger
 from desk.models import Asset
 from desk.scoring import pct_change
 
@@ -51,6 +52,7 @@ class DataHub:
         self.sources_ok: dict[str, bool] = {}
         self.snapshot: dict[str, Any] = {}
         self._rotate = 0
+        self.ledger = EventLedger()
 
     def _cached(self, key: str, ttl: float) -> Any | None:
         hit = self._ttl.get(key)
@@ -160,6 +162,18 @@ class DataHub:
                     "source": g.get("source"),
                 }
         snap["marks"] = marks
+        # Phase 8 — event-time ledger for marks, news, macro
+        now = time.time()
+        for sym, px in marks.items():
+            src = ((snap["tickers"].get(sym) or {}).get("source")) or "mark"
+            self.ledger.record_mark(sym, float(px), str(src), event_time=now)
+        for it in snap.get("news") or []:
+            self.ledger.record_news(it if isinstance(it, dict) else {"title": str(it)}, source="news")
+        fred = ((snap.get("calendar") or {}).get("fred") or {})
+        for series, val in fred.items():
+            if isinstance(val, (int, float)):
+                self.ledger.record_macro(str(series), float(val), release_time=now, source="fred")
+        snap["event_data"] = self.ledger.health()
         self.snapshot = snap
         return snap
 

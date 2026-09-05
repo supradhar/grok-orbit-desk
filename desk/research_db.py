@@ -30,11 +30,62 @@ CREATE TABLE IF NOT EXISTS market_bars (
   source TEXT,
   PRIMARY KEY (symbol, event_time)
 );
+CREATE TABLE IF NOT EXISTS features (
+  ts REAL,
+  symbol TEXT,
+  feature TEXT,
+  value REAL,
+  run_id TEXT
+);
 CREATE TABLE IF NOT EXISTS factor_signals (
   ts REAL,
   symbol TEXT,
   factor TEXT,
   score REAL,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS agent_predictions (
+  ts REAL,
+  agent_id TEXT,
+  symbol TEXT,
+  score REAL,
+  confidence REAL,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS layer2_verifications (
+  ts REAL,
+  symbol TEXT,
+  trust REAL,
+  garbage INTEGER,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS layer3_decisions (
+  ts REAL,
+  symbol TEXT,
+  blend REAL,
+  regime TEXT,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS layer4_challenges (
+  ts REAL,
+  symbol TEXT,
+  veto INTEGER,
+  note TEXT,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS layer5_memos (
+  ts REAL,
+  memo_id TEXT,
+  symbol TEXT,
+  side TEXT,
+  status TEXT,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS orders (
+  ts REAL,
+  symbol TEXT,
+  side TEXT,
+  size_usd REAL,
   run_id TEXT
 );
 CREATE TABLE IF NOT EXISTS fills (
@@ -44,6 +95,14 @@ CREATE TABLE IF NOT EXISTS fills (
   qty REAL,
   price REAL,
   fee REAL,
+  run_id TEXT
+);
+CREATE TABLE IF NOT EXISTS positions (
+  ts REAL,
+  symbol TEXT,
+  side TEXT,
+  qty REAL,
+  avg_price REAL,
   run_id TEXT
 );
 CREATE TABLE IF NOT EXISTS portfolio_snapshots (
@@ -61,6 +120,12 @@ CREATE TABLE IF NOT EXISTS models (
   features_json TEXT,
   metrics_json TEXT,
   git_commit TEXT
+);
+CREATE TABLE IF NOT EXISTS datasets (
+  dataset_id TEXT PRIMARY KEY,
+  path TEXT,
+  hash TEXT,
+  created_at REAL
 );
 """
 

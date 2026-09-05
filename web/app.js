@@ -764,10 +764,32 @@ function renderLab(s) {
   } else if (labTab === "risk") {
     const pr = lab.portfolio_risk || {};
     panel.innerHTML = pr.portfolio_vol != null
-      ? `<p>Portfolio vol ${pr.portfolio_vol} · CVaR5 ${pr.cvar_5 ?? "—"} · gross ${pr.gross ?? "—"}</p>
+      ? `<p>Portfolio vol ${pr.portfolio_vol} · CVaR5 ${pr.cvar_5 ?? "—"} · gross ${pr.gross ?? "—"} · conc ${pr.concentration ?? "—"}</p>
          <p class="meta">Weights: ${JSON.stringify(pr.weights || {})}</p>
+         <p class="meta">Stress: ${JSON.stringify(pr.stress || {})}</p>
          <p class="meta">Vol-target: ${JSON.stringify(pr.vol_target_weights || {})}</p>`
       : "<p class='hint'>Open positions to see covariance / CVaR risk.</p>";
+  } else if (labTab === "data") {
+    const dq = lab.data_quality || {};
+    panel.innerHTML = `<p>Observations ${dq.observations ?? 0} · stale ${dq.stale_ratio ?? "—"} · revisions ${dq.revisions ?? 0} · degraded ${dq.degraded ?? false}</p>
+      <p class="meta">Latency: ${JSON.stringify(dq.avg_latency_sec || {})}</p>
+      <p class="meta">Missingness: ${JSON.stringify(dq.missingness || {})}</p>`;
+  } else if (labTab === "abc") {
+    panel.innerHTML = "<p class='hint'>Running A/B/C study…</p>";
+    fetch("/api/lab/abc")
+      .then((r) => r.json())
+      .then((data) => {
+        const cmp = data.comparison || {};
+        const systems = cmp.systems || {};
+        const rows = Object.entries(systems)
+          .map(([id, m]) => `<tr><td>${id}</td><td>${m.sharpe ?? "—"}</td><td>${m.total_return ?? "—"}</td><td>${m.max_drawdown ?? "—"}</td><td>${m.expectancy ?? "—"}</td><td>${m.n_trades ?? "—"}</td></tr>`)
+          .join("");
+        panel.innerHTML = `<table><thead><tr><th>System</th><th>Sharpe</th><th>Return</th><th>DD</th><th>Expectancy</th><th>Trades</th></tr></thead><tbody>${rows}</tbody></table>
+          <p class="meta">Deltas: ${JSON.stringify(cmp.deltas || {})}</p>`;
+      })
+      .catch(() => {
+        panel.innerHTML = "<p class='hint'>A/B/C study failed.</p>";
+      });
   } else {
     panel.innerHTML = "<p class='hint'>Loading experiments…</p>";
     fetch("/api/experiments")
