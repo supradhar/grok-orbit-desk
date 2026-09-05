@@ -62,7 +62,22 @@ Daily loss halt uses **day_start_equity** (UTC risk day), persisted across resta
 pytest -q
 ```
 
-## Research labs & studies
+## Binance Demo Trading (simulated funds)
+
+1. **Revoke** any API key you pasted in chat.
+2. In Binance, open **Demo Trading** and create **new Demo API keys** (production keys do not work on demo).
+3. Set env vars (PowerShell):
+
+```powershell
+$env:BINANCE_API_KEY="your_demo_key"
+$env:BINANCE_API_SECRET="your_demo_secret"
+$env:BINANCE_BASE_URL="https://demo-api.binance.com"
+python -m desk.demo_trade status
+python -m desk.demo_trade buy BTCUSDT 25
+```
+
+Never put keys in `config.yaml` or git. See `.env.example`.
+
 
 ```bash
 # A/B/C deterministic vs softer vs adversarial-friction policies
